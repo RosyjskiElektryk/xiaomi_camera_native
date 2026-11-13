@@ -1,7 +1,7 @@
 """Integration constants."""
 
 DOMAIN = "xiaomi_camera_native"
-VERSION = "0.3.14"
+VERSION = "0.3.15"
 CONF_USER_ID = "user_id"
 CONF_PASS_TOKEN = "pass_token"
 CONF_REGION = "region"

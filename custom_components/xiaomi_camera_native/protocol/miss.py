@@ -26,9 +26,8 @@ PAN_TILT_MODELS = frozenset(
         "mxiang.camera.c301",
     }
 )
-# No unverified models are currently enabled for opt-in PTZ experiments.
-# Keep this separate mechanism for any explicitly authorized future field tests.
-EXPERIMENTAL_PAN_TILT_MODELS = frozenset()
+# CW500 Dual is opt-in until its motor command is confirmed on physical hardware.
+EXPERIMENTAL_PAN_TILT_MODELS = frozenset({"isa.camera.500dh"})
 
 
 def pan_tilt_supported(model: str, *, experimental_enabled: bool = False) -> bool:
