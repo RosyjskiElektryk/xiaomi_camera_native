@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.16 — CW500 Dual night vision and fill-light controls
+
+- Add a night-vision mode selector using the CW500 Dual MIoT `camera-control` property.
+- Add a fill-light switch using the CW500 Dual MIoT `other-functions` property.
+- Expose these controls once on the motorized primary camera device, not once per lens.
+- OFF also disables the fill light; other night-vision modes leave its independent switch unchanged.
+- Property access uses the authenticated Xiaomi cloud MIoT API; physical behavior still requires validation on camera firmware.
+
+
 ## 0.3.15 — experimental CW500 Dual primary-lens PTZ
 
 - Add an explicit opt-in for experimental PTZ on the CW500 Dual.
