@@ -143,3 +143,8 @@ from .session import CameraSession\n\n\nclass DualLensCameraSession(CameraSessio
                             self._cache.clear()
                             self._cache_valid = False
                     self._publish(video.data)
+
+    async def close(self) -> None:
+        if self.dual_transport is not None:
+            await self.dual_transport.close()
+        await super().close()
