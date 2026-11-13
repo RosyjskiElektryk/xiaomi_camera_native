@@ -93,6 +93,7 @@ class FakeClient:
 
     async def read_video(self):
         item = next(self.packets)
+        await asyncio.sleep(0)
         if isinstance(item, Exception):
             raise item
         return item
@@ -152,11 +153,17 @@ class CW500DualLensTests(unittest.TestCase):
         transport._queues[1].add(secondary_queue)
 
         async def run():
-            await transport._run()
+            task = asyncio.create_task(transport._run())
+            primary, secondary = await asyncio.gather(
+                asyncio.wait_for(primary_queue.get(), 1),
+                asyncio.wait_for(secondary_queue.get(), 1),
+            )
+            await task
+            return primary, secondary
 
-        asyncio.run(run())
-        self.assertIs(primary_queue.get_nowait(), primary_packet)
-        self.assertIs(secondary_queue.get_nowait(), secondary_packet)
+        primary, secondary = asyncio.run(run())
+        self.assertIs(primary, primary_packet)
+        self.assertIs(secondary, secondary_packet)
         self.assertIsInstance(primary_queue.get_nowait(), TransportError)
         self.assertIsInstance(secondary_queue.get_nowait(), TransportError)
         self.assertEqual(client.start_args, ("isa.camera.500dh", "hd", "hd"))
