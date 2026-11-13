@@ -115,14 +115,17 @@ class DualLensTransport:
     async def _run(self) -> None:
         client = None
         try:
-            client = await self._primary._connect_client(start_video=False)
-            self._sync_session_connection(client)
-            self._client = client
-            await client.start_media_both(
-                self._primary.device.model,
-                self._primary.options.quality,
-                self._primary.options.quality,
-            )
+            # Serialize connection startup/teardown with PTZ so a control-only
+            # connection cannot race the shared video connection.
+            async with self._ptz_lock:
+                client = await self._primary._connect_client(start_video=False)
+                self._sync_session_connection(client)
+                self._client = client
+                await client.start_media_both(
+                    self._primary.device.model,
+                    self._primary.options.quality,
+                    self._primary.options.quality,
+                )
             while True:
                 packet = await client.read_video()
                 if packet.lens_tag == 0x0000:
@@ -142,11 +145,12 @@ class DualLensTransport:
             # Never expose raw exceptions: they can contain local endpoint data.
             self._end_streams(TransportError("CW500 dual-lens transport failed"))
         finally:
-            if self._client is client:
-                self._client = None
-            if client is not None:
-                with suppress(Exception):
-                    await client.close()
+            async with self._ptz_lock:
+                if self._client is client:
+                    self._client = None
+                if client is not None:
+                    with suppress(Exception):
+                        await client.close()
 
     async def close(self) -> None:
         async with self._lock:
