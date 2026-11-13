@@ -21,6 +21,7 @@ class DualLensTransport:
 
     def __init__(self, primary_session) -> None:
         self._primary = primary_session
+        self.sessions = [primary_session]
         self._queues: dict[int, set[asyncio.Queue]] = {0: set(), 1: set()}
         self._task: asyncio.Task[None] | None = None
         self._lock = asyncio.Lock()
@@ -72,6 +73,11 @@ class DualLensTransport:
         client = None
         try:
             client = await self._primary._connect_client(start_video=False)
+            for session in self.sessions:
+                session.host = self._primary.host
+                session.address_source = self._primary.address_source
+                session.address_updates = self._primary.address_updates
+                session.protocol = client.connection.protocol
             await client.start_media_both(
                 self._primary.device.model,
                 self._primary.options.quality,
@@ -113,7 +119,9 @@ class DualLensTransport:
 class DualLensCameraSession(CameraSession):
     """Logical camera endpoint backed by the shared CW500 socket."""
 
-    def __init__(self, *args, transport: DualLensTransport | None, lens: int, stream_id: str, **kwargs):
+    def __init__(
+        self, *args, transport: DualLensTransport | None, lens: int, stream_id: str, **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self.dual_transport = transport
         self.lens = lens
