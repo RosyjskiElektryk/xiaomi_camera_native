@@ -12,4 +12,5 @@ TARGET_MODELS = {
     "chuangmi.camera.ip029a": "Xiaomi Smart Camera PTZ Version 2K (China)",
     "chuangmi.camera.046c04": "Xiaomi Smart Camera C200",
     "mxiang.camera.c301": "Xiaomi Smart Camera C301",
+    "isa.camera.500dh": "Xiaomi Outdoor Camera CW500 Dual",
 }
