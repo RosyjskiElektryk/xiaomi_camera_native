@@ -7,7 +7,8 @@ from contextlib import asynccontextmanager, suppress
 from collections.abc import AsyncIterator
 
 from .errors import AuthenticationError, TransportError
-from .media import MpegTsMuxer\nfrom .session import CameraSession
+from .media import MpegTsMuxer
+from .session import CameraSession
 
 
 class DualLensTransport:
@@ -108,7 +109,7 @@ class DualLensTransport:
             await asyncio.gather(task, return_exceptions=True)
 
 
-from .session import CameraSession\n\n\nclass DualLensCameraSession(CameraSession):
+class DualLensCameraSession(CameraSession):
     """Logical camera endpoint backed by the shared CW500 socket."""
 
     def __init__(self, *args, transport: DualLensTransport | None, lens: int, stream_id: str, **kwargs):
