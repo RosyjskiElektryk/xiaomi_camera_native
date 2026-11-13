@@ -85,7 +85,7 @@ Previous camera-specific streaming/PTZ options for removed cameras are also clea
 The cleanup also runs after a successful integration restart/reload, fixing
 empty camera devices left behind by older releases (for example, "Outdoor Garage").
 If an orphan remains, open its device page and choose **Delete device**:
-v0.3.13 supports deletion of orphaned Xiaomi camera devices. A **currently
+v0.3.14 supports deletion of orphaned Xiaomi camera devices. A **currently
 selected** camera cannot be deleted that way; deselect it in Rediscover first.
 A camera still visible in the Mi Home account may appear in the Rediscover list,
 but will not be re-added until explicitly selected.
@@ -183,7 +183,7 @@ These controls perform discrete steps. Continuous movement, zoom, calibration, p
 
 ### Physical motor verification (24 October 2026)
 
-The owner tested **Mi 360 2K / `chuangmi.camera.029a02`**, **C200 / `chuangmi.camera.046c04`**, and **C301 / `mxiang.camera.c301`** with Xiaomi Camera Native v0.3.8 on physical cameras. The screen recordings show changes in the camera scene alongside native `button.*` PTZ activations. The Home Assistant recorder independently logged matching left/right/up/down events. Review the [model-specific report](docs/PTZ_HARDWARE_VERIFICATION_2026-10-24.md) and the [three published recordings](https://github.com/hacs/default/pull/12439#issuecomment-6388692080). The motor command implementation remains unchanged through v0.3.13. These observations do not establish firmware-wide compatibility or a motor position acknowledgement.
+The owner tested **Mi 360 2K / `chuangmi.camera.029a02`**, **C200 / `chuangmi.camera.046c04`**, and **C301 / `mxiang.camera.c301`** with Xiaomi Camera Native v0.3.8 on physical cameras. The screen recordings show changes in the camera scene alongside native `button.*` PTZ activations. The Home Assistant recorder independently logged matching left/right/up/down events. Review the [model-specific report](docs/PTZ_HARDWARE_VERIFICATION_2026-10-24.md) and the [three published recordings](https://github.com/hacs/default/pull/12439#issuecomment-6388692080). The motor command implementation remains unchanged through v0.3.14. These observations do not establish firmware-wide compatibility or a motor position acknowledgement.
 
 ## HomeKit
 
