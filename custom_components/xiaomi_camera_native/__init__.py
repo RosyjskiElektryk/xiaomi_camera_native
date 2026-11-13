@@ -22,6 +22,7 @@ from .protocol.address import CameraAddressResolver, router_addresses
 from .protocol.cloud import CameraDevice, XiaomiCloud
 from .protocol.errors import AuthenticationError, CloudError
 from .protocol.session import CameraSession, LoopbackServer, StreamOptions
+from .protocol.dual_lens import DualLensCameraSession, DualLensTransport
 
 PLATFORMS = [Platform.CAMERA, Platform.BUTTON]
 _LOGGER = logging.getLogger(__name__)
@@ -107,6 +108,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             address_resolver=resolver,
             on_address_changed=save_camera_address,
         )
+    # CW500 Dual has two video channels interleaved on one physical MISS socket.
+    for did, original in tuple(sessions.items()):
+        if original.device.model != "isa.camera.500dh":
+            continue
+        primary = DualLensCameraSession(
+            cloud, original.device, original.options, original.ffmpeg,
+            on_state=save_rotated_credentials, on_auth_error=request_reauth,
+            address_resolver=resolver, on_address_changed=save_camera_address,
+            transport=None, lens=0, stream_id=f"{did}_primary",
+        )
+        transport = DualLensTransport(primary)
+        primary.dual_transport = transport
+        secondary = DualLensCameraSession(
+            cloud, original.device, original.options, original.ffmpeg,
+            on_state=save_rotated_credentials, on_auth_error=request_reauth,
+            address_resolver=resolver, on_address_changed=save_camera_address,
+            transport=transport, lens=1, stream_id=f"{did}_secondary",
+        )
+        await original.close()
+        del sessions[did]
+        sessions[primary.stream_id] = primary
+        sessions[secondary.stream_id] = secondary
     server = LoopbackServer(sessions)
     try:
         await server.start()
