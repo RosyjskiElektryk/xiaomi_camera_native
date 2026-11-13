@@ -32,16 +32,17 @@ No go2rtc process, bridge container, add-on or Xiaomi native SDK is required by 
 | Xiaomi Smart Camera PTZ Version 2K (China) | `chuangmi.camera.ip029a` | HD, quality 2 |
 | Xiaomi Smart Camera C200 | `chuangmi.camera.046c04` | HD, quality 3 |
 | Xiaomi Smart Camera C301 | `mxiang.camera.c301` | Automatic, quality 0 |
+| Xiaomi Outdoor Camera CW500 Dual | `isa.camera.500dh` | HD, quality 3 (both lenses) |
 
-The **four models in this table** have evidence of physical PTZ operation through Xiaomi Camera Native, with different verification sources. The first three were verified through [owner screen recordings on 24 October 2026](docs/PTZ_HARDWARE_VERIFICATION_2026-10-24.md). For `chuangmi.camera.ip029a`, a separate user confirmed on 12 November 2026 that video and all four PTZ directions worked physically on **one camera** with the integration-only v0.3.11 package; streaming was also confirmed on a **second camera**, but its PTZ was not tested. See the [model-specific report](docs/PTZ_HARDWARE_VERIFICATION_2026-11-12_ip029a.md).
+The four established models in this table have evidence of physical PTZ operation through Xiaomi Camera Native, with different verification sources. CW500 Dual PTZ is separate and remains experimental. The first three were verified through [owner screen recordings on 24 October 2026](docs/PTZ_HARDWARE_VERIFICATION_2026-10-24.md). For `chuangmi.camera.ip029a`, a separate user confirmed on 12 November 2026 that video and all four PTZ directions worked physically on **one camera** with the integration-only v0.3.11 package; streaming was also confirmed on a **second camera**, but its PTZ was not tested. See the [model-specific report](docs/PTZ_HARDWARE_VERIFICATION_2026-11-12_ip029a.md).
 
-**Pan/tilt buttons are enabled by default for all four listed models**, including `ip029a`; no experimental opt-in is required. The existing encrypted MISS `0x112` step command is used without modifications. Firmware and hardware revisions beyond the reported devices remain unverified. Other modern MISS/CS2 models may work for video, but have no PTZ buttons unless separately validated. **TUTK, Agora, MTP and legacy protocols are not supported.**
+**Pan/tilt buttons are enabled by default for the four established models**, including `ip029a`; no experimental opt-in is required. CW500 Dual is not in this verified list. Its primary-lens controls are deliberately hidden until you enable **Enable experimental pan/tilt** in that camera's options. The secondary lens never receives PTZ buttons. The existing encrypted MISS `0x112` step command is sent over the shared video connection when active, or a short control-only connection while idle. Do not assume movement works until tested on your camera. Other modern MISS/CS2 models have no PTZ buttons unless separately validated. **TUTK, Agora, MTP and legacy protocols are not supported.**
 
 ## Experimental dual-lens video: CW500 Dual
 
 The Xiaomi Outdoor Camera CW500 Dual (`isa.camera.500dh`) is exposed as two Home Assistant camera entities: the existing primary camera entity and a new secondary-lens entity. Both streams are requested over one authenticated MISS/CS2 connection and separated by the lens flags in the incoming media packets. Each lens has its own video muxer and optional H.264 encoder.
 
-This path is experimental. The command format and lens flag values are based on independent CW500 hardware verification, but this fork has not yet been validated against your physical camera and firmware. Do not treat successful Home Assistant setup or HACS validation as proof of live video. If either lens does not stream, collect sanitized diagnostics before changing camera settings. PTZ and microSD playback are not implemented for the CW500 Dual.
+This path is experimental. The dual-stream command and lens flag values have been confirmed on a physical CW500 Dual, and live video from both lenses has been reported working with this fork. Latency and buffering still need investigation. The secondary lens is fixed. Experimental PTZ controls are available only for the primary lens after explicit opt-in in that camera's options; motor movement is not yet hardware-verified. MicroSD playback is not implemented.
 
 ## Requirements
 
@@ -228,7 +229,7 @@ Camera attributes include:
 | `reconnects` | Reconnection attempts. |
 | `last_error` | Latest video-session error. |
 | `pan_tilt_supported` | Whether the four buttons are enabled for this camera. |
-| `pan_tilt_experimental` | True only for a separately allowed unverified PTZ test model. Always false for `ip029a` since v0.3.12; retained for compatibility. |
+| `pan_tilt_experimental` | True only when experimental PTZ is enabled for an unverified model. Always false for `ip029a` since v0.3.12; CW500 Dual requires explicit opt-in. |
 | `last_ptz_error` | Latest movement-command error. |
 | `ip_address` | Current local camera address. |
 | `auto_update_ip` | Whether automatic address recovery is enabled. |
@@ -278,7 +279,7 @@ python3 -m compileall -q custom_components
 ```
 
 These commands check package metadata, translation/version/license consistency,
-the four-model verified PTZ allowlist, absence of experimental models and Python syntax. The bundled tests are
+the verified PTZ allowlist, the explicitly opt-in CW500 experimental model and Python syntax. The bundled tests are
 **offline structural checks**; they are not a substitute for camera
 integration or on-device testing. Remote GitHub Actions run HACS and
 Hassfest validations after you push the repository.
