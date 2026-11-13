@@ -66,6 +66,7 @@ def load_transport_class():
         "TransportError": TransportError,
         "XiaomiError": XiaomiError,
         "PAN_TILT_OPERATIONS": {"left": 1, "right": 2, "up": 3, "down": 4},
+        "_PTZ_SETTLE_TIME": 0,
     }
     exec(
         compile(ast.fix_missing_locations(ast.Module(
