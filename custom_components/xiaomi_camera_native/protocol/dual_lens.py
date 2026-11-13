@@ -9,10 +9,11 @@ from dataclasses import replace
 
 from .errors import AuthenticationError, TransportError, XiaomiError
 from .media import MpegTsMuxer
-from .miss import VideoPacket
+from .miss import PAN_TILT_OPERATIONS, VideoPacket
 from .session import CameraSession
 
 _QUEUE_SIZE = 256
+_PTZ_SETTLE_TIME = 0.4
 
 
 class DualLensTransport:
@@ -30,6 +31,8 @@ class DualLensTransport:
         self._task: asyncio.Task[None] | None = None
         self._lock = asyncio.Lock()
         self._closed = False
+        self._client = None
+        self._ptz_lock = asyncio.Lock()
 
     @asynccontextmanager
     async def subscribe(
@@ -88,11 +91,33 @@ class DualLensTransport:
             session._refresh_address = source._refresh_address
             session.options = replace(session.options, host=source.options.host)
 
+    async def pan_tilt(self, direction: str) -> None:
+        """Send one PTZ step over the active shared socket, or a control-only
+        socket while both video entities are idle. Commands are never retried.
+        """
+        if not isinstance(direction, str) or direction not in PAN_TILT_OPERATIONS:
+            raise TransportError("Pan/tilt direction must be left, right, up or down")
+        async with self._ptz_lock:
+            if self._closed:
+                raise TransportError("CW500 dual-lens transport is closed")
+            client = self._client
+            temporary = client is None
+            if temporary:
+                client = await self._primary._connect_client(start_video=False)
+            assert client is not None
+            try:
+                await client.pan_tilt(direction)
+                await asyncio.sleep(_PTZ_SETTLE_TIME)
+            finally:
+                if temporary:
+                    await client.close()
+
     async def _run(self) -> None:
         client = None
         try:
             client = await self._primary._connect_client(start_video=False)
             self._sync_session_connection(client)
+            self._client = client
             await client.start_media_both(
                 self._primary.device.model,
                 self._primary.options.quality,
@@ -117,6 +142,8 @@ class DualLensTransport:
             # Never expose raw exceptions: they can contain local endpoint data.
             self._end_streams(TransportError("CW500 dual-lens transport failed"))
         finally:
+            if self._client is client:
+                self._client = None
             if client is not None:
                 with suppress(Exception):
                     await client.close()
@@ -149,6 +176,16 @@ class DualLensCameraSession(CameraSession):
         self.dual_transport = transport
         self.lens = lens
         self.stream_id = stream_id
+
+    @property
+    def supports_pan_tilt(self) -> bool:
+        """Only the physical primary CW500 lens has a motor."""
+        return self.lens == 0 and super().supports_pan_tilt
+
+    async def _send_pan_tilt(self, direction: str) -> None:
+        if self.lens != 0 or self.dual_transport is None:
+            raise TransportError("PTZ is available only on the CW500 primary lens")
+        await self.dual_transport.pan_tilt(direction)
 
     async def _capture(self, muxer: MpegTsMuxer) -> None:
         self._state("connecting")
