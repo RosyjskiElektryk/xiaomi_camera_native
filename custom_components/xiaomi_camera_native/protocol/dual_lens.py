@@ -1,40 +1,48 @@
-"""Shared MISS transport for the Xiaomi CW500's interleaved dual-lens video."""
+"""Shared MISS transport and logical sessions for CW500 dual-lens video."""
 
 from __future__ import annotations
 
 import asyncio
-from contextlib import asynccontextmanager, suppress
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager, suppress
+from dataclasses import replace
 
-from .errors import AuthenticationError, TransportError
+from .errors import AuthenticationError, TransportError, XiaomiError
 from .media import MpegTsMuxer
+from .miss import VideoPacket
 from .session import CameraSession
+
+_QUEUE_SIZE = 256
 
 
 class DualLensTransport:
-    """Demultiplex both CW500 video channels from one authenticated CS2 socket.
+    """Demultiplex both interleaved CW500 streams from one authenticated socket.
 
-    The camera sends both elementary streams over channel 2. Lens identity is
-    carried in the media flags: 0x0000 for the primary lens and 0x0140 for the
-    secondary lens after applying the documented 0x0140 mask.
+    The camera's media flags carry a lens discriminator. Masking the observed
+    high-order flag bits with 0x0140 yields 0x0000 for the primary lens and
+    0x0140 for the secondary lens; codec/quality bits are deliberately ignored.
     """
 
-    def __init__(self, primary_session) -> None:
+    def __init__(self, primary_session: CameraSession) -> None:
         self._primary = primary_session
-        self.sessions = [primary_session]
+        self.sessions: list[CameraSession] = [primary_session]
         self._queues: dict[int, set[asyncio.Queue]] = {0: set(), 1: set()}
         self._task: asyncio.Task[None] | None = None
         self._lock = asyncio.Lock()
         self._closed = False
 
     @asynccontextmanager
-    async def subscribe(self, lens: int) -> AsyncIterator[asyncio.Queue]:
+    async def subscribe(
+        self, lens: int
+    ) -> AsyncIterator[asyncio.Queue[VideoPacket | XiaomiError | None]]:
         if lens not in (0, 1):
             raise ValueError("CW500 lens must be 0 or 1")
-        queue: asyncio.Queue = asyncio.Queue(256)
+        queue: asyncio.Queue[VideoPacket | XiaomiError | None] = asyncio.Queue(
+            _QUEUE_SIZE
+        )
         async with self._lock:
             if self._closed:
-                raise TransportError("Dual-lens transport is closed")
+                raise TransportError("CW500 dual-lens transport is closed")
             self._queues[lens].add(queue)
             if self._task is None or self._task.done():
                 self._task = asyncio.create_task(self._run())
@@ -52,32 +60,39 @@ class DualLensTransport:
             if task is not None and not task.done():
                 await asyncio.gather(task, return_exceptions=True)
 
-    def _publish(self, lens: int, packet) -> None:
+    def _publish(self, lens: int, packet: VideoPacket) -> None:
         for queue in tuple(self._queues[lens]):
             if queue.full():
                 while not queue.empty():
                     queue.get_nowait()
-                queue.put_nowait(None)
+                queue.put_nowait(TransportError("CW500 video consumer fell behind"))
                 self._queues[lens].discard(queue)
                 continue
             queue.put_nowait(packet)
 
-    def _end_streams(self) -> None:
+    def _end_streams(self, error: XiaomiError | None = None) -> None:
         for queues in self._queues.values():
             for queue in tuple(queues):
                 while not queue.empty():
                     queue.get_nowait()
-                queue.put_nowait(None)
+                queue.put_nowait(error)
+
+    def _sync_session_connection(self, client) -> None:
+        """Copy connection metadata after address discovery has completed."""
+        source = self._primary
+        for session in self.sessions:
+            session.host = source.host
+            session.address_source = source.address_source
+            session.address_updates = source.address_updates
+            session.protocol = client.connection.protocol
+            session._refresh_address = source._refresh_address
+            session.options = replace(session.options, host=source.options.host)
 
     async def _run(self) -> None:
         client = None
         try:
             client = await self._primary._connect_client(start_video=False)
-            for session in self.sessions:
-                session.host = self._primary.host
-                session.address_source = self._primary.address_source
-                session.address_updates = self._primary.address_updates
-                session.protocol = client.connection.protocol
+            self._sync_session_connection(client)
             await client.start_media_both(
                 self._primary.device.model,
                 self._primary.options.quality,
@@ -89,15 +104,18 @@ class DualLensTransport:
                     self._publish(0, packet)
                 elif packet.lens_tag == 0x0140:
                     self._publish(1, packet)
+                # Unknown flag combinations are ignored, never misrouted.
         except asyncio.CancelledError:
             raise
-        except AuthenticationError:
-            self._primary.on_auth_error()
-            self._end_streams()
+        except AuthenticationError as err:
+            self._end_streams(err)
+        except XiaomiError as err:
+            self._end_streams(err)
+        except (OSError, TimeoutError):
+            self._end_streams(TransportError("CW500 local connection failed"))
         except Exception:
-            # Do not log exception payloads: transport errors may contain
-            # endpoint details. Both logical sessions reconnect independently.
-            self._end_streams()
+            # Never expose raw exceptions: they can contain local endpoint data.
+            self._end_streams(TransportError("CW500 dual-lens transport failed"))
         finally:
             if client is not None:
                 with suppress(Exception):
@@ -109,7 +127,7 @@ class DualLensTransport:
                 return
             self._closed = True
             task, self._task = self._task, None
-            self._end_streams()
+            self._end_streams(TransportError("CW500 dual-lens transport is closed"))
             if task is not None and not task.done():
                 task.cancel()
         if task is not None:
@@ -117,11 +135,16 @@ class DualLensTransport:
 
 
 class DualLensCameraSession(CameraSession):
-    """Logical camera endpoint backed by the shared CW500 socket."""
+    """One Home Assistant camera entity backed by a shared CW500 connection."""
 
     def __init__(
-        self, *args, transport: DualLensTransport | None, lens: int, stream_id: str, **kwargs
-    ):
+        self,
+        *args,
+        transport: DualLensTransport | None,
+        lens: int,
+        stream_id: str,
+        **kwargs,
+    ) -> None:
         super().__init__(*args, **kwargs)
         self.dual_transport = transport
         self.lens = lens
@@ -133,9 +156,12 @@ class DualLensCameraSession(CameraSession):
             raise TransportError("CW500 dual-lens transport is not initialized")
         async with self.dual_transport.subscribe(self.lens) as queue:
             while True:
-                packet = await asyncio.wait_for(queue.get(), 20)
-                if packet is None:
+                item = await asyncio.wait_for(queue.get(), 20)
+                if isinstance(item, XiaomiError):
+                    raise item
+                if item is None:
                     raise TransportError("CW500 dual-lens stream disconnected")
+                packet = item
                 self.codec = "H.264" if packet.codec == 4 else "H.265"
                 video = muxer.feed(packet)
                 if video is None:
