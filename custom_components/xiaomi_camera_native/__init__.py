@@ -126,6 +126,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             address_resolver=resolver, on_address_changed=save_camera_address,
             transport=transport, lens=1, stream_id=f"{did}_secondary",
         )
+        transport.sessions.append(secondary)
         await original.close()
         del sessions[did]
         sessions[primary.stream_id] = primary
