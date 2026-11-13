@@ -423,6 +423,31 @@ class XiaomiCloud:
             )
         return result.get("result")
 
+    async def set_miot_property(self, did: str, siid: int, piid: int, value: Any) -> None:
+        """Write one MIoT property through Xiaomi's authenticated cloud API."""
+        result = await self.request(
+            "/miotspec/prop/set",
+            {"params": [{"did": did, "siid": siid, "piid": piid, "value": value}]},
+        )
+        if not isinstance(result, list) or len(result) != 1:
+            raise CloudError("Xiaomi returned an invalid MIoT property response")
+        item = result[0]
+        if not isinstance(item, dict) or item.get("code") != 0:
+            raise CloudError("Xiaomi rejected the MIoT property update")
+
+    async def get_miot_property(self, did: str, siid: int, piid: int) -> Any:
+        """Read one MIoT property through Xiaomi's authenticated cloud API."""
+        result = await self.request(
+            "/miotspec/prop/get",
+            {"params": [{"did": did, "siid": siid, "piid": piid}]},
+        )
+        if not isinstance(result, list) or len(result) != 1:
+            raise CloudError("Xiaomi returned an invalid MIoT property response")
+        item = result[0]
+        if not isinstance(item, dict) or item.get("code") != 0 or "value" not in item:
+            raise CloudError("Xiaomi could not read the MIoT property")
+        return item["value"]
+
     async def devices(self) -> list[CameraDevice]:
         devices: dict[str, CameraDevice] = {}
         start = ""
