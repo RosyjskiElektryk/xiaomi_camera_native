@@ -222,7 +222,11 @@ class CW500DualLensTests(unittest.TestCase):
         transport = source.split("class DualLensTransport:", 1)[1].split(
             "class DualLensCameraSession", 1
         )[0]
-        self.assertEqual(transport.count("_connect_client(start_video=False)"), 1)
+        run_method = transport.split("async def _run", 1)[1].split(
+            "async def close", 1
+        )[0]
+        self.assertEqual(run_method.count("_connect_client(start_video=False)"), 1)
+        self.assertIn("async with self._ptz_lock:", run_method)
         self.assertIn("client.start_media_both(", transport)
         self.assertIn("packet.lens_tag == 0x0000", transport)
         self.assertIn("packet.lens_tag == 0x0140", transport)
