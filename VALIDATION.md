@@ -2,7 +2,7 @@
 
 This document distinguishes packaging checks from functional hardware testing.
 
-## Packaging validation (0.3.13)
+## Packaging validation (0.3.14)
 
 Run from the root of the repository:
 
@@ -39,7 +39,7 @@ The three videos and report are publicly attached to the owner's
 [review reply on #12439](https://github.com/hacs/default/pull/12439#issuecomment-6388692080)
 and remain available after that PR was closed. Direct recording links are in
 the report. The tested motor command implementation is unchanged in v0.3.9
-through v0.3.13. Firmware identifiers were not available in the HA device registry.
+through v0.3.14. Firmware identifiers were not available in the HA device registry.
 Recorder events alone do not prove motor movement; the changes in the video
 provide that separate observation. This does not verify other firmware versions
 or provide a motor position/command acknowledgement.
