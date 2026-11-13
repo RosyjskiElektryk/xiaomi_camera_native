@@ -263,8 +263,8 @@ class CW500DualLensTests(unittest.TestCase):
 
         manifest = json.loads((COMP / "manifest.json").read_text())
         const = (COMP / "const.py").read_text()
-        self.assertEqual(manifest["version"], "0.3.14")
-        self.assertIn('VERSION = "0.3.14"', const)
+        self.assertEqual(manifest["version"], "0.3.15")
+        self.assertIn('VERSION = "0.3.15"', const)
         self.assertIn('"isa.camera.500dh": "Xiaomi Outdoor Camera CW500 Dual"', const)
 
 
