@@ -10,8 +10,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, TARGET_MODELS
-from .protocol.cloud import CloudError
-from .protocol.errors import AuthenticationError, XiaomiError
+from .protocol.errors import XiaomiError
 
 NIGHT_MODES = {
     "Off": 0,
