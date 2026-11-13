@@ -40,6 +40,7 @@ class DualLensTransport:
         try:
             yield queue
         finally:
+            task = None
             async with self._lock:
                 self._queues[lens].discard(queue)
                 if not self._queues[0] and not self._queues[1]:
