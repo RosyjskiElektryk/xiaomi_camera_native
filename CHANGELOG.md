@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.15 — experimental CW500 Dual primary-lens PTZ
+
+- Add an explicit opt-in for experimental PTZ on the CW500 Dual.
+- Expose movement buttons only for the motorized primary lens; the secondary lens remains video-only.
+- Route movement commands through the active shared MISS connection while streaming, or use a short control-only connection while idle.
+- Never automatically retry a movement command after a transport error.
+- Add offline regression checks for active-socket reuse, idle control connections and invalid directions.
+- Physical CW500 motor movement remains unverified; enable the option only for controlled testing.
 ## 0.3.14 — CW500 Dual dual-lens video foundation
 
 - Add the CW500 Dual model identifier and two Home Assistant camera entities for its primary and secondary lenses.
