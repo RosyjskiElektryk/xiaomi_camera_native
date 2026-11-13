@@ -46,6 +46,11 @@ class VideoPacket:
     timestamp_ms: int
     payload: bytes
 
+    @property
+    def lens_tag(self) -> int:
+        """Return the measured CW500 lens identifier from the media flags."""
+        return (self.flags >> 16) & 0x0140
+
 
 class MissClient:
     def __init__(self, connection: CS2Connection, key: bytes) -> None:
@@ -98,7 +103,12 @@ class MissClient:
 
     async def start_media(self, model: str, quality: str) -> None:
         if quality == "hd":
-            value = 3 if model in {"chuangmi.camera.046c04", "chuangmi.camera.72ac1"} else 2
+            # CW500 profile 2 is only 640x360; profile 3 is 2560x1440.
+            value = 3 if model in {
+                "chuangmi.camera.046c04",
+                "chuangmi.camera.72ac1",
+                "isa.camera.500dh",
+            } else 2
         elif quality in {"auto", "sd"}:
             value = 0 if quality == "auto" else 1
         elif quality in {"0", "1", "2", "3", "4", "5"}:
@@ -108,6 +118,34 @@ class MissClient:
         payload = (
             struct.pack(">I", 0x102)
             + json.dumps({"videoquality": value, "enableaudio": 0}, separators=(",", ":")).encode()
+        )
+        await self.connection.write_command(0x1001, encode_media(self.key, payload))
+
+    async def start_media_both(
+        self, model: str, primary_quality: str = "hd", secondary_quality: str = "hd"
+    ) -> None:
+        """Ask a supported dual-lens camera to interleave both video streams."""
+        def resolve(quality: str) -> int:
+            if quality == "hd":
+                return 3 if model == "isa.camera.500dh" else 2
+            if quality == "auto":
+                return 0
+            if quality == "sd":
+                return 1
+            if quality in {"0", "1", "2", "3", "4", "5"}:
+                return int(quality)
+            raise ProtocolError("Unsupported Xiaomi video quality")
+
+        payload = (
+            struct.pack(">I", 0x102)
+            + json.dumps(
+                {
+                    "videoquality": resolve(primary_quality),
+                    "videoquality2": resolve(secondary_quality),
+                    "enableaudio": 0,
+                },
+                separators=(",", ":"),
+            ).encode()
         )
         await self.connection.write_command(0x1001, encode_media(self.key, payload))
 
