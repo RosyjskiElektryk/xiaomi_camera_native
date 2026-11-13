@@ -6,8 +6,8 @@ import asyncio
 from contextlib import asynccontextmanager, suppress
 from collections.abc import AsyncIterator
 
-from .errors import TransportError
-from .media import MpegTsMuxer, MuxedVideo
+from .errors import AuthenticationError, TransportError
+from .media import MpegTsMuxer\nfrom .session import CameraSession
 
 
 class DualLensTransport:
@@ -83,6 +83,9 @@ class DualLensTransport:
                     self._publish(1, packet)
         except asyncio.CancelledError:
             raise
+        except AuthenticationError:
+            self._primary.on_auth_error()
+            self._end_streams()
         except Exception:
             # Do not log exception payloads: transport errors may contain
             # endpoint details. Both logical sessions reconnect independently.
@@ -108,7 +111,7 @@ class DualLensTransport:
 from .session import CameraSession\n\n\nclass DualLensCameraSession(CameraSession):
     """Logical camera endpoint backed by the shared CW500 socket."""
 
-    def __init__(self, *args, transport: DualLensTransport, lens: int, stream_id: str, **kwargs):
+    def __init__(self, *args, transport: DualLensTransport | None, lens: int, stream_id: str, **kwargs):
         super().__init__(*args, **kwargs)
         self.dual_transport = transport
         self.lens = lens
@@ -116,6 +119,8 @@ from .session import CameraSession\n\n\nclass DualLensCameraSession(CameraSessio
 
     async def _capture(self, muxer: MpegTsMuxer) -> None:
         self._state("connecting")
+        if self.dual_transport is None:
+            raise TransportError("CW500 dual-lens transport is not initialized")
         async with self.dual_transport.subscribe(self.lens) as queue:
             while True:
                 packet = await asyncio.wait_for(queue.get(), 20)
