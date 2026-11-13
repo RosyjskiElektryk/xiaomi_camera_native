@@ -134,6 +134,16 @@
       "tilt_down": {
         "name": "Tilt down"
       }
+    },
+    "select": {
+      "night_vision_mode": {
+        "name": "Night vision mode"
+      }
+    },
+    "switch": {
+      "fill_light": {
+        "name": "Fill light"
+      }
     }
   }
 }

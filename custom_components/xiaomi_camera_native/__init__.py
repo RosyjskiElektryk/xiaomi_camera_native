@@ -24,7 +24,7 @@ from .protocol.errors import AuthenticationError, CloudError
 from .protocol.session import CameraSession, LoopbackServer, StreamOptions
 from .protocol.dual_lens import DualLensCameraSession, DualLensTransport
 
-PLATFORMS = [Platform.CAMERA, Platform.BUTTON]
+PLATFORMS = [Platform.CAMERA, Platform.BUTTON, Platform.SELECT, Platform.SWITCH]
 _LOGGER = logging.getLogger(__name__)
 
 

@@ -38,6 +38,10 @@ The four established models among those listed have evidence of physical PTZ ope
 
 **Pan/tilt buttons are enabled by default for the four established models**, including `ip029a`; no experimental opt-in is required. CW500 Dual is not in this verified list. Its primary-lens controls are deliberately hidden until you enable **Enable experimental pan/tilt** in that camera's options. The secondary lens never receives PTZ buttons. The existing encrypted MISS `0x112` step command is sent over the shared video connection when active, or a short control-only connection while idle. Do not assume movement works until tested on your camera. Other modern MISS/CS2 models have no PTZ buttons unless separately validated. **TUTK, Agora, MTP and legacy protocols are not supported.**
 
+## CW500 Dual night-vision and fill-light controls
+
+For `isa.camera.500dh`, the integration exposes one **Night vision mode** selector and one **Fill light** switch on the shared camera device. The selector uses MIoT service 2/property 3 (`night-shot`): Off, IR/on, Auto, Auto full-colour, Always full-colour and Smart full-colour. The fill-light switch uses service 6/property 16 (`hl-filllight-switch`). Selecting Off also disables the fill light; changing to another night-vision mode does not alter the independent fill-light switch. These settings are sent through the authenticated Xiaomi cloud MIoT API, not the local MISS video socket. The MIoT specification lists the properties as writable, but this integration path still needs physical testing on each camera firmware. The fill light may be subject to the camera's own timeout/automation behavior.
+
 ## Experimental dual-lens video: CW500 Dual
 
 The Xiaomi Outdoor Camera CW500 Dual (`isa.camera.500dh`) is exposed as two Home Assistant camera entities: the existing primary camera entity and a new secondary-lens entity. Both streams are requested over one authenticated MISS/CS2 connection and separated by the lens flags in the incoming media packets. Each lens has its own video muxer and optional H.264 encoder.
