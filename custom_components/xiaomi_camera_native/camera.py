@@ -45,7 +45,9 @@ class NativeXiaomiCamera(Camera):
         super().__init__()
         self._session = session
         self._server = server
-        self._attr_unique_id = stream_id
+        self._attr_unique_id = (
+            session.device.did if stream_id.endswith("_primary") else stream_id
+        )
         self._stream_id = stream_id
         if stream_id.endswith("_primary"):
             self._attr_name = "Główny obiektyw"
