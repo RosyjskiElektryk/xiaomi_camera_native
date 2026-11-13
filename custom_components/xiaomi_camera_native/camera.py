@@ -29,7 +29,8 @@ async def async_setup_entry(
 ) -> None:
     runtime = entry.runtime_data
     async_add_entities(
-        NativeXiaomiCamera(session, runtime.server) for session in runtime.sessions.values()
+        NativeXiaomiCamera(session, runtime.server, stream_id)
+        for stream_id, session in runtime.sessions.items()
     )
 
 
@@ -40,11 +41,16 @@ class NativeXiaomiCamera(Camera):
     _attr_brand = "Xiaomi"
     _attr_should_poll = False
 
-    def __init__(self, session: CameraSession, server: LoopbackServer) -> None:
+    def __init__(self, session: CameraSession, server: LoopbackServer, stream_id: str) -> None:
         super().__init__()
         self._session = session
         self._server = server
-        self._attr_unique_id = session.device.did
+        self._attr_unique_id = stream_id
+        self._stream_id = stream_id
+        if stream_id.endswith("_primary"):
+            self._attr_name = "Główny obiektyw"
+        elif stream_id.endswith("_secondary"):
+            self._attr_name = "Dodatkowy obiektyw"
         self._attr_model = TARGET_MODELS.get(session.device.model, session.device.model)
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, session.device.did)},
@@ -117,7 +123,7 @@ class NativeXiaomiCamera(Camera):
 
     async def stream_source(self) -> str:
         # The stream URL is local to HA, not a go2rtc or Xiaomi cloud URL.
-        return self._server.source(self._session.device.did)
+        return self._server.source(self._stream_id)
 
     def _set_snapshot_error(self, error: str | None) -> None:
         if self._last_snapshot_error == error:
