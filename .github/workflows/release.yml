@@ -1,4 +1,4 @@
-name: Publish Xiaomi Camera Native v0.3.13
+name: Publish Xiaomi Camera Native v0.3.14
 on:
   workflow_run:
     workflows:
@@ -29,12 +29,12 @@ jobs:
           CURRENT="$(git ls-remote origin refs/heads/main | cut -f1)"
           [[ "$CURRENT" == "$VALIDATED_SHA" ]] || exit 0
           VERSION="$(python -c 'import json; print(json.load(open("custom_components/xiaomi_camera_native/manifest.json"))["version"])')"
-          [[ "$VERSION" == "0.3.13" ]] || exit 0
+          [[ "$VERSION" == "0.3.14" ]] || exit 0
           if gh release view "v$VERSION" >/dev/null 2>&1; then
             echo "Release already exists"; exit 0
           fi
           gh release create "v$VERSION" \
             --target "$VALIDATED_SHA" \
             --title "Xiaomi Camera Native v$VERSION" \
-            --notes-file RELEASE_NOTES_0.3.13.md \
+            --notes-file RELEASE_NOTES_0.3.14.md \
             --latest

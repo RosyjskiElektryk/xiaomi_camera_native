@@ -14,6 +14,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
         "cameras": [
             {
                 "model": session.device.model,
+                "lens": {0: "primary", 1: "secondary"}.get(getattr(session, "lens", None), "single"),
                 "status": session.status,
                 "transport": session.protocol,
                 "source_codec": session.codec,

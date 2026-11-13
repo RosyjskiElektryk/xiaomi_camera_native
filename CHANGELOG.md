@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.14 — CW500 Dual dual-lens video foundation
+
+- Add the CW500 Dual model identifier and two Home Assistant camera entities for its primary and secondary lenses.
+- Use one authenticated MISS/CS2 connection and demultiplex interleaved packets by the verified lens flag bits.
+- Keep each logical lens on its own MPEG-TS muxer, output subscribers, snapshot path and optional H.264 encoder.
+- Preserve the existing primary camera unique ID so existing dashboards and automations keep their entity reference.
+- Add offline checks for protocol command shape, lens routing and entity wiring.
+- Dual-lens operation still requires live CW500 hardware validation; SD-card playback and PTZ are not included.
+
+
 ## 0.3.13 — safe device removal after Rediscover
 
 - Automatically prune device- and entity-registry records for Xiaomi cameras

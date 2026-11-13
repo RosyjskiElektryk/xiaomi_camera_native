@@ -2,7 +2,7 @@
 
 This document distinguishes packaging checks from functional hardware testing.
 
-## Packaging validation (0.3.13)
+## Packaging validation (0.3.14)
 
 Run from the root of the repository:
 
@@ -20,6 +20,10 @@ and device-registry reconciliation/removal policy using offline test doubles. Co
 Once published to GitHub, review the results of the `HACS Validation` and
 `Hassfest Validation` jobs under GitHub Actions. Their result cannot be
 confirmed by local packaging checks.
+
+## CW500 Dual dual-lens validation scope
+
+The 0.3.14 branch adds an offline simulation that feeds primary- and secondary-tagged packets through the shared transport class and checks that they reach separate queues over one client. It also checks the MISS command fields, lens-flag mask, session wiring and primary entity-ID preservation. This verifies the local demultiplexing logic only. It does **not** prove that every CW500 firmware emits the expected flags or accepts the dual-stream command, and it does not replace a live test on an `isa.camera.500dh`.
 
 ## Hardware and runtime compatibility
 
@@ -39,7 +43,7 @@ The three videos and report are publicly attached to the owner's
 [review reply on #12439](https://github.com/hacs/default/pull/12439#issuecomment-6388692080)
 and remain available after that PR was closed. Direct recording links are in
 the report. The tested motor command implementation is unchanged in v0.3.9
-through v0.3.13. Firmware identifiers were not available in the HA device registry.
+through v0.3.14. Firmware identifiers were not available in the HA device registry.
 Recorder events alone do not prove motor movement; the changes in the video
 provide that separate observation. This does not verify other firmware versions
 or provide a motor position/command acknowledgement.

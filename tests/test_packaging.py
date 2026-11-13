@@ -21,7 +21,7 @@ class HACSMetadataTests(unittest.TestCase):
     def test_domain_version_and_links(self):
         manifest = json.loads((ROOT / 'custom_components/xiaomi_camera_native/manifest.json').read_text())
         self.assertEqual(manifest['domain'], 'xiaomi_camera_native')
-        self.assertEqual(manifest['version'], '0.3.13')
+        self.assertEqual(manifest['version'], '0.3.14')
         self.assertTrue(manifest['documentation'].startswith('https://'))
         self.assertTrue(manifest['issue_tracker'].startswith('https://'))
 

@@ -25,13 +25,13 @@ class ReviewerTests(unittest.TestCase):
 
     def test_versions(self):
         manifest = json.loads((COMP / "manifest.json").read_text())
-        self.assertEqual(manifest["version"], "0.3.13")
-        self.assertIn('VERSION = "0.3.13"', (COMP / "const.py").read_text())
+        self.assertEqual(manifest["version"], "0.3.14")
+        self.assertIn('VERSION = "0.3.14"', (COMP / "const.py").read_text())
         self.assertIn('camera-controls.js?v={VERSION}', (COMP / "frontend.py").read_text())
         workflow = (ROOT / ".github/workflows/release.yml").read_text()
-        self.assertIn('[[ "$VERSION" == "0.3.13" ]]', workflow)
-        self.assertIn('RELEASE_NOTES_0.3.13.md', workflow)
-        self.assertIn("Xiaomi Camera Native 0.3.13", (COMP / "NOTICE").read_text())
+        self.assertIn('[[ "$VERSION" == "0.3.14" ]]', workflow)
+        self.assertIn('RELEASE_NOTES_0.3.14.md', workflow)
+        self.assertIn("Xiaomi Camera Native 0.3.14", (COMP / "NOTICE").read_text())
 
     def test_license_and_test_evidence(self):
         root_license = (ROOT / "License").read_text()
