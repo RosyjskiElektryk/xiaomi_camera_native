@@ -89,6 +89,7 @@ class NativeXiaomiCamera(Camera):
         session = self._session
         attributes = {
             "connection_status": session.status,
+            "lens": {0: "primary", 1: "secondary"}.get(getattr(session, "lens", None), "single"),
             "transport": session.protocol,
             "source_codec": session.codec,
             "video_mode": session.options.video_mode,
