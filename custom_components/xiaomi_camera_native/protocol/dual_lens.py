@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager, suppress
 from collections.abc import AsyncIterator
 
 from .errors import TransportError
+from .media import MpegTsMuxer, MuxedVideo
 
 
 class DualLensTransport:
@@ -102,3 +103,43 @@ class DualLensTransport:
                 task.cancel()
         if task is not None:
             await asyncio.gather(task, return_exceptions=True)
+
+
+from .session import CameraSession\n\n\nclass DualLensCameraSession(CameraSession):
+    """Logical camera endpoint backed by the shared CW500 socket."""
+
+    def __init__(self, *args, transport: DualLensTransport, lens: int, stream_id: str, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.dual_transport = transport
+        self.lens = lens
+        self.stream_id = stream_id
+
+    async def _capture(self, muxer: MpegTsMuxer) -> None:
+        self._state("connecting")
+        async with self.dual_transport.subscribe(self.lens) as queue:
+            while True:
+                packet = await asyncio.wait_for(queue.get(), 20)
+                if packet is None:
+                    raise TransportError("CW500 dual-lens stream disconnected")
+                self.codec = "H.264" if packet.codec == 4 else "H.265"
+                video = muxer.feed(packet)
+                if video is None:
+                    continue
+                self.frames += 1
+                if self.status != "streaming":
+                    self.last_error = None
+                    self._state("streaming")
+                elif self.frames % 100 == 0:
+                    self.on_state()
+                if self.options.video_mode == "h264":
+                    self._enqueue_video(video)
+                else:
+                    if video.keyframe:
+                        self._cache.clear()
+                        self._cache_valid = True
+                    if self._cache_valid:
+                        self._cache.extend(video.data)
+                        if len(self._cache) > 4 * 1024 * 1024:
+                            self._cache.clear()
+                            self._cache_valid = False
+                    self._publish(video.data)
