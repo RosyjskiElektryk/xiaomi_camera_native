@@ -19,6 +19,7 @@ Xiaomi Camera Native connects to compatible Xiaomi cameras using a native Python
 - Four single-step controls: **Pan left**, **Pan right**, **Tilt up** and **Tilt down**.
 - Movement arrows below the video in the standard camera pop-up, alongside **Download snapshot**.
 - One shared video connection and, when required, one encoder per camera.
+- Experimental dual-lens video for the Xiaomi Outdoor Camera CW500 Dual, exposed as two camera entities over one physical MISS connection.
 - On-demand streaming, idle disconnection, bounded reconnection attempts and credential-safe diagnostics.
 
 No go2rtc process, bridge container, add-on or Xiaomi native SDK is required by this integration.
@@ -36,6 +37,12 @@ The **four models in this table** have evidence of physical PTZ operation throug
 
 **Pan/tilt buttons are enabled by default for all four listed models**, including `ip029a`; no experimental opt-in is required. The existing encrypted MISS `0x112` step command is used without modifications. Firmware and hardware revisions beyond the reported devices remain unverified. Other modern MISS/CS2 models may work for video, but have no PTZ buttons unless separately validated. **TUTK, Agora, MTP and legacy protocols are not supported.**
 
+## Experimental dual-lens video: CW500 Dual
+
+The Xiaomi Outdoor Camera CW500 Dual (`isa.camera.500dh`) is exposed as two Home Assistant camera entities: the existing primary camera entity and a new secondary-lens entity. Both streams are requested over one authenticated MISS/CS2 connection and separated by the lens flags in the incoming media packets. Each lens has its own video muxer and optional H.264 encoder.
+
+This path is experimental. The command format and lens flag values are based on independent CW500 hardware verification, but this fork has not yet been validated against your physical camera and firmware. Do not treat successful Home Assistant setup or HACS validation as proof of live video. If either lens does not stream, collect sanitized diagnostics before changing camera settings. PTZ and microSD playback are not implemented for the CW500 Dual.
+
 ## Requirements
 
 - Cameras already paired with your Xiaomi account in Xiaomi Home/Mi Home.
@@ -51,7 +58,7 @@ The documented minimum baseline is **Home Assistant 2025.3.0**. Initial live str
 
 1. Open **HACS** in Home Assistant.
 2. From the three-dot menu, choose **Custom repositories**.
-3. Add `https://github.com/Kosztyk/xiaomi_camera_native` and select **Integration**.
+3. Add `https://github.com/RosyjskiElektryk/xiaomi_camera_native` and select **Integration**.
 4. Find **Xiaomi Camera Native** in HACS and install it.
 5. Restart Home Assistant; then add it from **Settings → Devices & services**.
 
