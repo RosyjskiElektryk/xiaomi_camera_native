@@ -195,6 +195,22 @@ class CameraSession:
             return client
         raise error
 
+    async def _send_pan_tilt(self, direction: str) -> None:
+        """Send one motor step, using a control-only connection when idle."""
+        client = self._client
+        temporary = client is None
+        if temporary:
+            client = await self._connect_client(start_video=False)
+        assert client is not None
+        try:
+            await client.pan_tilt(direction)
+            # Allow a discrete step to finish before another press or closing
+            # a temporary connection. Never repeat the command.
+            await asyncio.sleep(PAN_TILT_SETTLE_TIME)
+        finally:
+            if temporary:
+                await client.close()
+
     async def pan_tilt(self, direction: str) -> None:
         """Move one step without opening a competing video connection.
 
@@ -219,19 +235,7 @@ class CameraSession:
             async with asyncio.timeout(PAN_TILT_TIMEOUT), self._connection_lock:
                 if self._closed:
                     raise TransportError("Camera integration is unloading")
-                client = self._client
-                temporary = client is None
-                if temporary:
-                    client = await self._connect_client(start_video=False)
-                assert client is not None
-                try:
-                    await client.pan_tilt(direction)
-                    # Allow a discrete step to finish before another press or
-                    # closing a temporary connection. Never repeat the command.
-                    await asyncio.sleep(PAN_TILT_SETTLE_TIME)
-                finally:
-                    if temporary:
-                        await client.close()
+                await self._send_pan_tilt(direction)
             self.last_ptz_error = None
         except AuthenticationError:
             self.last_ptz_error = "Xiaomi authentication expired; reauthenticate the integration"
